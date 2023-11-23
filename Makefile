@@ -11,5 +11,5 @@ build:
 clean:
 	rm -f bin/$(BINARY_NAME)
 
-benchmark:
-	GOMAXPROCS=1 $(GO) test -bench=. -benchmem -benchtime=10s -cpuprofile $(package)
+bench:
+	GOMAXPROCS=1 go test -bench=. -benchmem 
