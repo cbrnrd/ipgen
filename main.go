@@ -11,7 +11,11 @@ import (
 	. "github.com/cbrnrd/ipgen/pkg/ip"
 )
 
-const Version = "0.1.0"
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 
@@ -24,7 +28,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Generates random IPv4 addresses and writes them to a stream\n")
-		fmt.Fprintf(os.Stderr, "Version: %s\n", Version)
+		fmt.Fprintf(os.Stderr, "Version: %s (%s) at %s\n\n", version, commit, date)
 		flag.PrintDefaults()
 	}
 
@@ -38,7 +42,7 @@ func main() {
 
 	excludedRanges := ParseExcludedRanges(excludedRangesStr)
 	outFile := SetupOutput(outpath)
-	
+
 	jobs := make(chan int)
 
 	var wg sync.WaitGroup
