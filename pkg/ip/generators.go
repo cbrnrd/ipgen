@@ -7,14 +7,21 @@ import (
 )
 
 // Generate a random IPv4 address.
-// The first octet will not be 0.
+// The IP is guaranteed to be a valid, non loopback address
+// or private address.
 func GenIPv4() string {
 	buf := make([]byte, 4)
 	ip := rand.Uint32()
+	o1, o2 := byte(ip>>24)&0xff, byte(ip>>16)&0xff
 
-	// check first octet is not 0
-	if ip & 0xff000000 == 0 {
-		return GenIPv4()
+	for (o1 == 0) || // 0.0.0.0/8 - Invalid address
+		(o1 == 127) || // 127.0.0.0/8 - Loopback
+		(o1 >= 224) || // 224.*.*.*+ - Multicast
+		(o1 == 10) || // 10.0.0.0/8 - Internal network
+		(o1 == 192 && o2 == 168) || // 192.168.0.0/16 - Internal network
+		(o1 == 172 && o2 >= 16 && o2 < 32) { // 172.16.0.0/14 - Internal network
+		ip = rand.Uint32()
+		o1, o2 = byte(ip>>24)&0xff, byte(ip>>16)&0xff
 	}
 
 	binary.LittleEndian.PutUint32(buf, ip)
@@ -40,7 +47,6 @@ func IsExcluded(ip string, excludedRanges []net.IPNet) bool {
 	}
 	return false
 }
-
 
 func GenIPv4WithExclusions(excludedRanges []net.IPNet) string {
 	ip := GenIPv4()

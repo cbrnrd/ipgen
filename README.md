@@ -29,12 +29,10 @@ $ GOMAXPROCS=1 go test -bench=. -benchmem
 goos: darwin
 goarch: arm64
 pkg: github.com/cbrnrd/ipgen
-BenchmarkGenIPv4               	27612655	        40.74 ns/op	      15 B/op	       1 allocs/op
-BenchmarkGenIPv6               	 6622725	       178.2 ns/op	      63 B/op	       2 allocs/op
-BenchmarkGenIPv4WithExclusions 	 9639518	       123.8 ns/op	      15 B/op	       1 allocs/op
-BenchmarkGenIPv6WithExclusions 	 2410920	       500.9 ns/op	      64 B/op	       2 allocs/op
-PASS
-ok  	github.com/cbrnrd/ipgen	5.814s
+BenchmarkGenIPv4               	28962502	        41.33 ns/op	      15 B/op	       1 allocs/op
+BenchmarkGenIPv6               	 6986734	       170.1 ns/op	      63 B/op	       2 allocs/op
+BenchmarkGenIPv4WithExclusions 	 9832515	       120.8 ns/op	      15 B/op	       1 allocs/op
+BenchmarkGenIPv6WithExclusions 	 2491005	       480.8 ns/op	      64 B/op	       2 allocs/op
 ```
 
 
@@ -43,24 +41,24 @@ ok  	github.com/cbrnrd/ipgen	5.814s
 ```bash
 $ hyperfine --warmup 3 "./ipgen -n 1000000 -o ips.txt" "./ipgen -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16" "./ipgen -6 -n 1000000 -o ips.txt" "./ipgen -6 -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16"
 Benchmark 1: ./ipgen -n 1000000 -o ips.txt
-  Time (mean ± σ):      2.276 s ±  0.067 s    [User: 1.669 s, System: 2.394 s]
-  Range (min … max):    2.206 s …  2.391 s    10 runs
+  Time (mean ± σ):      2.274 s ±  0.071 s    [User: 1.686 s, System: 2.391 s]
+  Range (min … max):    2.200 s …  2.432 s    10 runs
 
 Benchmark 2: ./ipgen -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
-  Time (mean ± σ):      2.409 s ±  0.068 s    [User: 1.797 s, System: 2.486 s]
-  Range (min … max):    2.336 s …  2.578 s    10 runs
+  Time (mean ± σ):      2.372 s ±  0.047 s    [User: 1.782 s, System: 2.470 s]
+  Range (min … max):    2.311 s …  2.459 s    10 runs
 
 Benchmark 3: ./ipgen -6 -n 1000000 -o ips.txt
-  Time (mean ± σ):      2.549 s ±  0.049 s    [User: 1.842 s, System: 2.590 s]
-  Range (min … max):    2.487 s …  2.670 s    10 runs
+  Time (mean ± σ):      2.541 s ±  0.061 s    [User: 1.871 s, System: 2.579 s]
+  Range (min … max):    2.466 s …  2.663 s    10 runs
 
 Benchmark 4: ./ipgen -6 -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
-  Time (mean ± σ):      2.861 s ±  0.082 s    [User: 2.374 s, System: 2.759 s]
-  Range (min … max):    2.781 s …  3.064 s    10 runs
+  Time (mean ± σ):      2.799 s ±  0.053 s    [User: 2.400 s, System: 2.705 s]
+  Range (min … max):    2.724 s …  2.876 s    10 runs
 
 Summary
   ./ipgen -n 1000000 -o ips.txt ran
-    1.06 ± 0.04 times faster than ./ipgen -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
+    1.04 ± 0.04 times faster than ./ipgen -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
     1.12 ± 0.04 times faster than ./ipgen -6 -n 1000000 -o ips.txt
-    1.26 ± 0.05 times faster than ./ipgen -6 -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
+    1.23 ± 0.04 times faster than ./ipgen -6 -n 1000000 -o ips.txt -x 192.168.0.0/16,10.0.0.0/16
 ```
