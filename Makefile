@@ -1,7 +1,7 @@
 GO := go
 GOBUILD := $(GO) build
 package := github.com/cbrnrd/ipgen
-VERSION := 
+VERSION ?= $(shell git describe --tags --always --dirty)
 
 default: build
 
@@ -16,5 +16,7 @@ bench:
 	GOMAXPROCS=1 go test -bench=. -benchmem 
 
 tag:
+	@echo "Tagging $(VERSION)"
+	@sleep 3
 	git tag -a $(VERSION) -m "Release $(VERSION)"
 	git push origin $(VERSION)
