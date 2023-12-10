@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -57,6 +58,7 @@ func main() {
 
 	close(jobs)
 	wg.Wait()
+
 }
 
 func SetupOutput(outpath string) *os.File {
@@ -89,37 +91,38 @@ func ParseExcludedRanges(excludedRangesStr string) []net.IPNet {
 
 // Runs `generatorFunc` and writes the result to `outFile`.
 // Intended to be invoked as a goroutine.
-func Run(wg *sync.WaitGroup, jobs <-chan int, outFile *os.File, generatorFunc func() string) {
+func Run(wg *sync.WaitGroup, jobs <-chan int, out io.Writer, generatorFunc func() net.IP) {
 	defer wg.Done()
 	for range jobs {
-		outFile.WriteString(generatorFunc() + "\n")
+		io.WriteString(out, generatorFunc().String()+"\n")
 	}
 }
 
 // Runs `generatorFunc` and writes the result to `outFile`, excluding any IPs in `excludedRanges`.
 // Intended to be invoked as a goroutine.
-func RunWithExclusions(wg *sync.WaitGroup, jobs <-chan int, outFile *os.File, excludedRanges []net.IPNet, generatorFunc func() string) {
+func RunWithExclusions(wg *sync.WaitGroup, jobs <-chan int, out io.Writer, excludedRanges []net.IPNet, generatorFunc func() net.IP) {
 	defer wg.Done()
 	for range jobs {
 		ip := generatorFunc()
 		if !IsExcluded(ip, excludedRanges) {
-			outFile.WriteString(ip + "\n")
+			io.WriteString(out, ip.String()+"\n")
+
 		}
 	}
 }
 
 // Returns the correct generator function based on the v6 flag
-func GetGenerator(v6 bool, excludedRanges []net.IPNet) func() string {
+func GetGenerator(v6 bool, excludedRanges []net.IPNet) func() net.IP {
 	if v6 {
 		if len(excludedRanges) > 0 {
-			return func() string {
+			return func() net.IP {
 				return GenIPv6WithExclusions(excludedRanges)
 			}
 		}
 		return GenIPv6
 	}
 	if len(excludedRanges) > 0 {
-		return func() string {
+		return func() net.IP {
 			return GenIPv4WithExclusions(excludedRanges)
 		}
 	}
