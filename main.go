@@ -1,15 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strings"
-	"sync"
-
-	. "github.com/cbrnrd/ipgen/pkg/ip"
 )
 
 var (
@@ -20,7 +17,7 @@ var (
 
 func main() {
 
-	concurrency := 20
+	oneMb := 1024 * 1024
 	n := -1
 	outpath := "-"
 	excludedRangesStr := ""
@@ -33,7 +30,6 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	flag.IntVar(&concurrency, "c", 4, "Number of workers to use to generate the data")
 	flag.IntVar(&n, "n", -1, "Number of IPs to generate. -1 means infinite")
 	flag.StringVar(&outpath, "o", "-", "Output path for the generated data")
 	flag.StringVar(&excludedRangesStr, "x", "", "IP ranges to exclude from the generated data (format: range,range,range)")
@@ -43,21 +39,41 @@ func main() {
 
 	excludedRanges := ParseExcludedRanges(excludedRangesStr)
 	outFile := SetupOutput(outpath)
-
-	jobs := make(chan int)
-
-	var wg sync.WaitGroup
-	for i := 0; i < concurrency; i++ {
-		wg.Add(1)
-		go Run(&wg, jobs, outFile, GetGenerator(v6, excludedRanges))
+	ipBytesMultiplier := 1
+	if v6 {
+		ipBytesMultiplier = 4
 	}
 
-	for i := 0; i < n || n == -1; i++ {
-		jobs <- i
+	buf := make([]byte, 0, oneMb)
+	bufLen := 0
+	generateRandomIP := func() net.IP {
+		ip := make(net.IP, 4*ipBytesMultiplier)
+		rand.Read(ip)
+		return ip
 	}
 
-	close(jobs)
-	wg.Wait()
+	for i := 0; n == -1 || i < n; i++ {
+		ip := generateRandomIP()
+		if len(excludedRanges) > 0 && IsExcluded(ip, excludedRanges) {
+			i--
+			continue
+		}
+
+		ipStr := ip.String()
+		ipBytes := append([]byte(ipStr), '\n')
+		if bufLen+len(ipStr) > oneMb {
+			outFile.Write(buf)
+			
+			// reset buffer
+			buf = buf[:0]
+			bufLen = 0
+		}
+
+		buf = append(buf, ipBytes...)
+		bufLen += len(ipBytes)
+	}
+
+	outFile.Write(buf)
 
 }
 
@@ -89,42 +105,12 @@ func ParseExcludedRanges(excludedRangesStr string) []net.IPNet {
 	return excludedRanges
 }
 
-// Runs `generatorFunc` and writes the result to `outFile`.
-// Intended to be invoked as a goroutine.
-func Run(wg *sync.WaitGroup, jobs <-chan int, out io.Writer, generatorFunc func() net.IP) {
-	defer wg.Done()
-	for range jobs {
-		io.WriteString(out, generatorFunc().String()+"\n")
-	}
-}
-
-// Runs `generatorFunc` and writes the result to `outFile`, excluding any IPs in `excludedRanges`.
-// Intended to be invoked as a goroutine.
-func RunWithExclusions(wg *sync.WaitGroup, jobs <-chan int, out io.Writer, excludedRanges []net.IPNet, generatorFunc func() net.IP) {
-	defer wg.Done()
-	for range jobs {
-		ip := generatorFunc()
-		if !IsExcluded(ip, excludedRanges) {
-			io.WriteString(out, ip.String()+"\n")
-
+// Checks if an IP is in any of the excluded ranges
+func IsExcluded(ip net.IP, excludedRanges []net.IPNet) bool {
+	for _, network := range excludedRanges {
+		if network.Contains(ip) {
+			return true
 		}
 	}
-}
-
-// Returns the correct generator function based on the v6 flag
-func GetGenerator(v6 bool, excludedRanges []net.IPNet) func() net.IP {
-	if v6 {
-		if len(excludedRanges) > 0 {
-			return func() net.IP {
-				return GenIPv6WithExclusions(excludedRanges)
-			}
-		}
-		return GenIPv6
-	}
-	if len(excludedRanges) > 0 {
-		return func() net.IP {
-			return GenIPv4WithExclusions(excludedRanges)
-		}
-	}
-	return GenIPv4
+	return false
 }
